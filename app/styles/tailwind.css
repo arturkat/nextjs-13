@@ -1,0 +1,1 @@
+@tailwind base;@layer base {  dt {    font-weight: 700;  }  dd {    padding-left: 2rem;  }}@tailwind components;/*@layer components {*//*  .container {*//*    max-width: 1536px;*//*  }*//*}*/@tailwind utilities;/* Form *//*input:disabled {*//*  opacity: .9;*//*  cursor: not-allowed;*//*}*/

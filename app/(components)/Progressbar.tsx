@@ -1,0 +1,1 @@
+"use client";import NextNProgress from "nextjs-progressbar";export function Progressbar() {  return <NextNProgress />;}

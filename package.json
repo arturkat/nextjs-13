@@ -1,22 +1,1 @@
-{
-  "name": "next-13",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@types/node": "18.11.10",
-    "@types/react": "18.0.25",
-    "@types/react-dom": "18.0.9",
-    "eslint": "8.28.0",
-    "eslint-config-next": "13.0.5",
-    "next": "13.0.5",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "typescript": "4.9.3"
-  }
-}
+{  "name": "blog",  "version": "0.1.0",  "private": true,  "scripts": {    "nvm": "nvm use 16.8.0",    "dev": "next dev",    "build": "next build",    "start": "next start",    "lint": "next lint",    "prismaScript": "ts-node ./prisma/script.ts",    "prismaStudio": "prisma studio",    "prismaGenerate": "prisma generate",    "prismaMigrate": "prisma migrate dev"  },  "dependencies": {    "@picocss/pico": "^1.5.6",    "@prisma/client": "^4.6.0",    "@types/formidable": "^2.0.5",    "@types/node": "18.11.10",    "@types/react": "18.0.25",    "@types/react-dom": "18.0.9",    "eslint": "8.28.0",    "eslint-config-next": "13.0.5",    "formidable": "^3.2.5",    "markdown-it": "^13.0.1",    "modern-normalize": "^1.1.0",    "next": "13.1.1",    "nextjs-progressbar": "^0.0.16",    "react": "18.2.0",    "react-dom": "18.2.0",    "reset-css": "^5.0.1",    "sass": "^1.56.2",    "typescript": "4.9.3"  },  "devDependencies": {    "@tailwindcss/forms": "^0.5.3",    "@tailwindcss/typography": "^0.5.8",    "autoprefixer": "^10.4.13",    "postcss": "^8.4.20",    "prettier": "2.8.1",    "prisma": "^4.6.0",    "tailwindcss": "^3.2.4",    "ts-node": "^10.9.1"  }}

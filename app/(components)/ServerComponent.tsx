@@ -1,0 +1,1 @@
+export default function ServerComponent(props) {  return (    <>      <h1>I'm server component</h1>    </>  );}

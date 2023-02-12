@@ -1,0 +1,1 @@
+### :where() vs :is()> The difference between :where() and :is() is that :where() always has 0 specificity, whereas :is() takes on the specificity of the most specific selector in its arguments.> Here's a mnemonic => :is() is influential, :where() is worthless.
