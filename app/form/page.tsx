@@ -4,18 +4,18 @@ import { NavbarOffset } from "@comp/Navbar";
 import TextInput from "@ui/TextInput";
 import Textarea from "@ui/Textarea";
 import Button from "@ui/Button";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { host } from "@/lib/config";
 
 export default function Form() {
-  const [image, setImage] = useState(null);
-  const [createObjectURL, setCreateObjectURL] = useState(null);
-  const [folderContent, setFolderContent] = useState([]);
-  const folderPathRef = useRef([]);
+  let [image, setImage] = useState(null);
+  let [createObjectURL, setCreateObjectURL] = useState(null);
+  let [folderContent, setFolderContent] = useState([]);
+  let folderPathRef = useRef([]);
 
-  const uploadToClient = (event) => {
+  let uploadToClient = (event) => {
     if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
+      let file = event.target.files[0];
       setImage(file);
       setCreateObjectURL(URL.createObjectURL(file));
     }
@@ -24,7 +24,7 @@ export default function Form() {
   async function uploadToServer(e) {
     e.preventDefault();
     if (!image) return;
-    const data = new FormData();
+    let data = new FormData();
     data.append("file", image, image.name);
     let res = await fetch(`${host}/api/file-upload`, {
       method: "POST",
@@ -37,13 +37,11 @@ export default function Form() {
   }
 
   async function getFolderContent(folderPath = "", isBlack = false) {
-    // debugger;
     if (folderPath) {
       folderPathRef.current.push(folderPath);
     } else if (isBlack) {
       folderPathRef.current.pop();
     }
-    // console.log(`folderPath: ${folderPathRef.current}`);
     let urlSearchParams = new URLSearchParams({
       folderPath: folderPathRef.current.join("/"),
     });
@@ -53,7 +51,7 @@ export default function Form() {
       method: "GET",
     });
     if (res.status === 200) {
-      const resData = await res.json();
+      let resData = await res.json();
       if (resData.ok && resData.data) {
         setFolderContent(resData.data);
         console.log("success: ", resData);
@@ -63,6 +61,37 @@ export default function Form() {
     }
   }
 
+  async function createFolder() {
+    let folderName = prompt("Enter folder name");
+    let bodyData = {
+      folderName,
+      folderPath: folderPathRef.current.join("/"),
+    };
+    let res = await fetch(`${host}/api/create-folder`, {
+      method: "POST",
+      cache: "no-cache",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bodyData),
+    });
+    if (res.status === 200) {
+      let resData = await res.json();
+      if (resData.ok && resData.data) {
+        console.log("createFolder - success: ", resData);
+        await getFolderContent(); // refresh current folder content
+      }
+    } else {
+      console.log("createFolder - error: ", res);
+    }
+  }
+
+  let contextMenuHook = useContextMenu();
+
+  // useEffect(() => {
+  //   console.log("contextMenuHook: ", contextMenuHook);
+  // }, []);
+
   return (
     <>
       <NavbarOffset />
@@ -70,21 +99,32 @@ export default function Form() {
         <h1>Forms</h1>
 
         <h2>Image Library</h2>
-        <ContextMenu />
+        <ContextMenu {...contextMenuHook} />
+        <pre>folderPathRef: {folderPathRef.current.join("/")}</pre>
         <nav className="mb-4">
           <Button onClick={() => getFolderContent()}>Get Images</Button>
           <Button onClick={() => getFolderContent("", true)}>Back</Button>
+          <Button onClick={() => createFolder()}>Create Folder</Button>
         </nav>
         <div
           className="grid grid-flow-row-dense grid-cols-6 gap-4 border-2 rounded-md p-5"
-          data-context-menu="canvas"
+          onContextMenu={(e) => {
+            contextMenuHook.setType("canvas");
+            contextMenuHook.handleContextMenu(e);
+          }}
+          // data-context-menu="canvas"
         >
           {folderContent.map((item) => {
             if (item.isFolder) {
               return (
                 <div
                   onClick={() => getFolderContent(item.name)}
-                  data-context-menu="folder"
+                  onContextMenu={(e) => {
+                    e.stopPropagation();
+                    contextMenuHook.setType("folder");
+                    contextMenuHook.handleContextMenu(e);
+                  }}
+                  // data-context-menu="folder"
                   className="border-amber-500 border-2 rounded-md bg-amber-200 p-2 radius break-words cursor-pointer"
                   key={item.name}
                 >
@@ -94,8 +134,13 @@ export default function Form() {
             } else {
               return (
                 <figure
-                  data-context-menu="image"
-                  className="grid grid-cols-1 m-0 p-2 rounded-md border-2 border-amber-500 bg-amber-50"
+                  onContextMenu={(e) => {
+                    e.stopPropagation();
+                    contextMenuHook.setType("image");
+                    contextMenuHook.handleContextMenu(e);
+                  }}
+                  // data-context-menu="image"
+                  className="grid grid-cols-1 m-0 p-2 rounded-md border-2 border-amber-200 bg-amber-50"
                   key={item.name}
                 >
                   <img src={item.url} className="rounded-md" />
@@ -135,39 +180,72 @@ export default function Form() {
   );
 }
 
+// https://blog.logrocket.com/creating-react-context-menu/
 function ContextMenu(props) {
-  let { cords, setCords, visible, setVisible, target } = useContextMenu();
+  // let { cords, setCords, visible, setVisible, target, handleContextMenu, handleClick } = useContextMenu();
+  let {
+    cords,
+    setCords,
+    visible,
+    setVisible,
+    type,
+    setType,
+    target,
+    handleContextMenu,
+    handleClick,
+  } = props;
+  let linkClasses =
+    "py-2 px-4 text-xl rounded-md cursor-pointer transition-colors duration-300 bg-indigo-300 hover:bg-indigo-400";
 
   return (
     visible && (
       <div
-        className="absolute inline-grid gap-2 min-w-[7rem] bg-indigo-300 shadow-lg shadow-indigo-400 rounded-md px-5 py-3 my-2"
+        className="absolute inline-grid gap-0 min-w-[7rem] bg-indigo-300 shadow-lg shadow-indigo-400 rounded-md"
         style={{ top: cords.y, left: cords.x }}
       >
-        {target.dataset.contextMenu === "folder" && (
+        {type === "folder" && (
           <>
-            <a
-              className="text-xl cursor-pointer"
-              onClick={() => target.click()}
-            >
+            <a className={linkClasses} onClick={() => target.click()}>
               Open
             </a>
-            <a className="text-xl cursor-pointer">Delete</a>
-            <a className="text-xl cursor-pointer">Exit</a>
+            <a className={linkClasses}>Delete</a>
+            <a className={linkClasses}>Exit</a>
           </>
         )}
-        {target.dataset.contextMenu === "image" && (
+        {type === "image" && (
           <>
-            <a className="text-xl cursor-pointer">Delete</a>
-            <a className="text-xl cursor-pointer">Exit</a>
+            <a className={linkClasses}>Delete</a>
+            <a className={linkClasses}>Exit</a>
           </>
         )}
-        {target.dataset.contextMenu === "canvas" && (
+        {type === "canvas" && (
           <>
-            <a className="text-xl cursor-pointer">Create Folder</a>
-            <a className="text-xl cursor-pointer">Exit</a>
+            <a className={linkClasses}>Create Folder</a>
+            <a className={linkClasses}>Exit</a>
           </>
         )}
+
+        {/*{target.dataset.contextMenu === "folder" && (*/}
+        {/*  <>*/}
+        {/*    <a className={linkClasses} onClick={() => target.click()}>*/}
+        {/*      Open*/}
+        {/*    </a>*/}
+        {/*    <a className={linkClasses}>Delete</a>*/}
+        {/*    <a className={linkClasses}>Exit</a>*/}
+        {/*  </>*/}
+        {/*)}*/}
+        {/*{target.dataset.contextMenu === "image" && (*/}
+        {/*  <>*/}
+        {/*    <a className={linkClasses}>Delete</a>*/}
+        {/*    <a className={linkClasses}>Exit</a>*/}
+        {/*  </>*/}
+        {/*)}*/}
+        {/*{target.dataset.contextMenu === "canvas" && (*/}
+        {/*  <>*/}
+        {/*    <a className={linkClasses}>Create Folder</a>*/}
+        {/*    <a className={linkClasses}>Exit</a>*/}
+        {/*  </>*/}
+        {/*)}*/}
       </div>
     )
   );
@@ -177,23 +255,46 @@ function useContextMenu() {
   let [cords, setCords] = useState({ x: 0, y: 0 });
   let [visible, setVisible] = useState(false);
   let [target, setTarget] = useState(null);
+  let [type, setType] = useState(null);
 
-  function handleContextMenu(e) {
-    const iTarget = e.target.closest("[data-context-menu]");
-    if (iTarget) {
-      e.preventDefault();
-      setTarget(iTarget);
-      setCords({ x: e.pageX, y: e.pageY });
-      setVisible(true);
-    }
-  }
+  let handleContextMenu = useCallback((e) => {
+    e.preventDefault();
+    setTarget(e.target);
+    setCords({ x: e.pageX, y: e.pageY });
+    setVisible(true);
+  }, []);
+
+  // function handleContextMenu(e) {
+  //   e.preventDefault();
+  //   setTarget(e.target);
+  //   setCords({ x: e.pageX, y: e.pageY });
+  //   setVisible(true);
+  // }
+
+  // function handleClick() {
+  //   setVisible(false);
+  // }
 
   useEffect(() => {
-    document.addEventListener("contextmenu", handleContextMenu);
-    document.addEventListener("click", () => setVisible(false));
+    // function handleContextMenu(e) {
+    //   let iTarget = e.target.closest("[data-context-menu]");
+    //   if (iTarget) {
+    //     e.preventDefault();
+    //     setTarget(iTarget);
+    //     setCords({ x: e.pageX, y: e.pageY });
+    //     setVisible(true);
+    //   }
+    // }
+
+    function handleClick() {
+      setVisible(false);
+    }
+    document.addEventListener("click", handleClick);
+    // document.addEventListener("contextmenu", handleContextMenu);
+
     return () => {
-      document.removeEventListener("contextmenu", handleContextMenu);
-      document.removeEventListener("click", () => setVisible(false));
+      document.removeEventListener("click", handleClick);
+      // document.removeEventListener("contextmenu", handleContextMenu);
     };
   }, []);
 
@@ -202,6 +303,10 @@ function useContextMenu() {
     setCords,
     visible,
     setVisible,
+    type,
+    setType,
     target,
+    handleContextMenu,
+    // handleClick,
   };
 }
